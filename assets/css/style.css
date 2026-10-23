@@ -1,0 +1,755 @@
+/* ===== Tokens ===== */
+:root {
+  --bg: #0a0c0f;
+  --bg-raised: #111418;
+  --line: #23282f;
+  --line-soft: #1a1e23;
+  --text: #edf0f2;
+  --text-dim: #8b94a0;
+  --text-faint: #7a828c;
+  --accent: #57ff46; /* terminal phosphor green, from the Calvopa logo mark */
+  --accent-hover: #81ff74;
+  --accent-soft: rgba(87, 255, 70, 0.14);
+  --font: "Red Hat Display", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --max-w: 1120px;
+  --r: 4px;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 150ms !important;
+    transition-delay: 0ms !important;
+  }
+
+  /* Fewer and gentler, not zero: the hero keeps a brief opacity-only fade
+     instead of its slide-and-draw sequence. */
+  @keyframes hero-rise { from { opacity: 0; } to { opacity: 1; } }
+  .hero h1, .hero-tagline, .hero-sub, .hero-actions, .hero-status {
+    animation-duration: 400ms !important;
+  }
+  .hero-wave-path { animation: none !important; stroke-dashoffset: 0; }
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  scrollbar-color: var(--line) var(--bg);
+}
+
+/* Browser surfaces: themed from the palette rather than left at defaults. */
+::selection { background: var(--accent); color: #07130a; }
+
+input,
+textarea {
+  caret-color: var(--accent);
+}
+
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--line); border: 3px solid var(--bg); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+
+a { color: inherit; text-decoration: none; }
+
+img, svg { display: block; max-width: 100%; }
+
+.wrap {
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+section { padding: 88px 0; border-top: 1px solid var(--line-soft); }
+
+h1, h2, h3 { font-weight: 600; letter-spacing: -0.01em; margin: 0; }
+
+.section-head {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  align-items: end;
+  margin-bottom: 48px;
+}
+
+h2.section-title {
+  font-size: clamp(1.5rem, 2.6vw, 1.9rem);
+  margin: 0;
+}
+
+p.section-sub {
+  color: var(--text-dim);
+  margin: 0;
+  max-width: 480px;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ===== Nav ===== */
+.nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: rgba(10, 12, 15, 0.82);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid transparent;
+  transition: border-color 200ms ease;
+}
+
+.nav.scrolled { border-bottom-color: var(--line); }
+
+.nav .wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 60px;
+}
+
+.nav-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: 1rem;
+}
+
+.nav-logo-mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+}
+
+.nav-logo .dot { color: var(--accent); }
+
+.nav-links {
+  display: flex;
+  gap: 30px;
+  font-size: 0.95rem;
+  color: var(--text-dim);
+}
+
+.nav-links a {
+  padding: 4px 0;
+  border-bottom: 1px solid transparent;
+  transition: color 150ms var(--ease-out), border-color 150ms var(--ease-out);
+}
+
+.nav-cta {
+  font-size: 0.95rem;
+  color: var(--text);
+  border-bottom: 1px solid var(--accent);
+  padding-bottom: 2px;
+  transition: color 150ms var(--ease-out), opacity 100ms var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .nav-links a:hover { color: var(--text); border-bottom-color: var(--accent); }
+  .nav-cta:hover { color: var(--accent); }
+}
+
+.nav-cta:active { opacity: 0.6; }
+
+.nav-toggle {
+  display: none;
+  position: relative;
+  /* 44x44 hit area (WCAG touch target minimum) around the 22x16 visual icon. */
+  width: 44px;
+  height: 44px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.nav-toggle-bar {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 22px;
+  height: 1.5px;
+  background: var(--text);
+  /* transform only — top/left would trigger layout on every frame */
+  transition: transform 220ms var(--ease-in-out), opacity 150ms var(--ease-out);
+}
+
+.nav-toggle-bar:nth-child(1) { transform: translate(-50%, -7px); }
+.nav-toggle-bar:nth-child(2) { transform: translate(-50%, 0); }
+.nav-toggle-bar:nth-child(3) { transform: translate(-50%, 7px); }
+
+.nav-toggle[aria-expanded="true"] .nav-toggle-bar:nth-child(1) { transform: translate(-50%, 0) rotate(45deg); }
+.nav-toggle[aria-expanded="true"] .nav-toggle-bar:nth-child(2) { opacity: 0; }
+.nav-toggle[aria-expanded="true"] .nav-toggle-bar:nth-child(3) { transform: translate(-50%, 0) rotate(-45deg); }
+
+/* ===== Hero ===== */
+.hero {
+  position: relative;
+  overflow: hidden;
+  padding: 164px 0 96px;
+}
+
+/* Phosphor glow behind the hero content — same green as the wave/logo mark,
+   just unlit until this section, like the CRT warming up before the signal
+   is readable. Decorative only, so it sits behind everything and ignores input. */
+.hero::before {
+  content: "";
+  position: absolute;
+  top: -20%;
+  right: -10%;
+  width: 640px;
+  height: 640px;
+  background: radial-gradient(circle, var(--accent-soft), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hero-wrap { position: relative; z-index: 1; }
+
+@media (max-width: 860px) {
+  .hero::before { width: 420px; height: 420px; }
+}
+
+.hero-wave {
+  width: 100%;
+  max-width: 420px;
+  height: 48px;
+  color: var(--accent);
+  margin-bottom: 28px;
+}
+
+.hero-wave-path {
+  stroke-dasharray: 760;
+  stroke-dashoffset: 760;
+  animation: draw-wave 1100ms var(--ease-out) 150ms forwards;
+}
+
+@keyframes draw-wave {
+  to { stroke-dashoffset: 0; }
+}
+
+/* One orchestrated load sequence: the wave draws, then the text rises in
+   behind it at 80ms steps. This is the hero's single bold move — nothing
+   else on the page gets a load animation. */
+@keyframes hero-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.hero h1,
+.hero-tagline,
+.hero-sub,
+.hero-actions,
+.hero-status {
+  animation: hero-rise 520ms var(--ease-out) both;
+}
+
+.hero h1 { animation-delay: 120ms; }
+.hero-tagline { animation-delay: 200ms; }
+.hero-sub { animation-delay: 280ms; }
+.hero-actions { animation-delay: 360ms; }
+.hero-status { animation-delay: 440ms; }
+
+.hero h1 {
+  font-size: clamp(2.4rem, 6vw, 4.2rem);
+  line-height: 1;
+}
+
+.hero-tagline {
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
+  color: var(--text);
+  max-width: 560px;
+  margin: 20px 0 0;
+  font-weight: 500;
+}
+
+.hero-sub {
+  font-size: 1rem;
+  color: var(--text-dim);
+  max-width: 540px;
+  margin: 14px 0 40px;
+  text-wrap: pretty;
+}
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 24px;
+  border-radius: var(--r);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 150ms var(--ease-out), transform 120ms var(--ease-out);
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #07130a;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btn-primary:hover { background: var(--accent-hover); }
+}
+
+.btn:active { transform: scale(0.97); }
+
+.link-arrow {
+  font-size: 0.95rem;
+  color: var(--text-dim);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 2px;
+  transition: color 150ms var(--ease-out), border-color 150ms var(--ease-out), opacity 100ms var(--ease-out);
+}
+
+.link-arrow span { font-size: 0.85em; }
+
+@media (hover: hover) and (pointer: fine) {
+  .link-arrow:hover { color: var(--text); border-color: var(--accent); }
+}
+
+.link-arrow:active { opacity: 0.6; }
+
+.hero-status {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 72px 0 0;
+  border-top: 1px solid var(--line);
+}
+
+.hero-status-item {
+  padding: 18px 20px 0 0;
+  border-right: 1px solid var(--line);
+}
+
+.hero-status-item:last-child { border-right: none; }
+
+.hero-status-item dt {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.hero-status-item dd {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+/* ===== Qué hago (flat row list) ===== */
+.service-list { border-top: 1px solid var(--line); }
+
+.service-row {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 24px;
+  padding: 32px 0;
+  border-bottom: 1px solid var(--line);
+  align-items: start;
+  transition: clip-path 520ms var(--ease-out), opacity 420ms var(--ease-out);
+}
+
+/* Signal sweep: each row reveals left-to-right, like a trace crossing an
+   oscilloscope, instead of a generic fade-up. Content doesn't move. Hidden
+   state only applies once JS confirms it can reveal it again — otherwise
+   (no JS, or IntersectionObserver unsupported) rows stay visible by default. */
+.service-list.reveal-pending .service-row {
+  clip-path: inset(0 100% 0 0);
+  opacity: 0;
+}
+
+.service-list.is-visible .service-row {
+  clip-path: inset(0 0 0 0);
+  opacity: 1;
+}
+
+.service-list.is-visible .service-row:nth-child(1) { transition-delay: 0ms; }
+.service-list.is-visible .service-row:nth-child(2) { transition-delay: 70ms; }
+.service-list.is-visible .service-row:nth-child(3) { transition-delay: 140ms; }
+.service-list.is-visible .service-row:nth-child(4) { transition-delay: 210ms; }
+
+.service-icon {
+  width: 26px;
+  height: 26px;
+  color: var(--accent);
+  margin-top: 4px;
+}
+
+.service-text h3 {
+  font-size: 1.1rem;
+  margin-bottom: 8px;
+}
+
+.service-text p {
+  color: var(--text-dim);
+  font-size: 0.95rem;
+  max-width: 560px;
+  margin: 0;
+}
+
+/* ===== Cómo trabajo (connected timeline) ===== */
+.process-line {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.process-step {
+  position: relative;
+  padding-top: 40px;
+}
+
+.process-step::before {
+  content: "";
+  position: absolute;
+  top: 10px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--line);
+}
+
+.process-step:first-child::before { left: 0; }
+
+/* The accent line that "travels" across the track as the section comes
+   into view, step by step — visualizes the sequence instead of decorating it. */
+.process-signal {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--accent);
+  transform-origin: left;
+  transform: scaleX(0);
+  transition: transform 450ms var(--ease-in-out);
+}
+
+.process-num {
+  position: absolute;
+  top: -1px;
+  left: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  color: var(--text-faint);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 200ms var(--ease-out), color 200ms var(--ease-out);
+}
+
+.process-line.is-visible .process-step:nth-child(1) .process-signal { transition-delay: 0ms; }
+.process-line.is-visible .process-step:nth-child(2) .process-signal { transition-delay: 450ms; }
+.process-line.is-visible .process-step:nth-child(3) .process-signal { transition-delay: 900ms; }
+.process-line.is-visible .process-step:nth-child(4) .process-signal { transition-delay: 1350ms; }
+
+.process-line.is-visible .process-step:nth-child(1) .process-num { transition-delay: 0ms; }
+.process-line.is-visible .process-step:nth-child(2) .process-num { transition-delay: 450ms; }
+.process-line.is-visible .process-step:nth-child(3) .process-num { transition-delay: 900ms; }
+.process-line.is-visible .process-step:nth-child(4) .process-num { transition-delay: 1350ms; }
+
+.process-line.is-visible .process-signal { transform: scaleX(1); }
+.process-line.is-visible .process-num { border-color: var(--accent); color: var(--accent); }
+
+.process-step h3 {
+  font-size: 1.02rem;
+  margin-bottom: 8px;
+}
+
+.process-step p {
+  color: var(--text-dim);
+  font-size: 0.92rem;
+  margin: 0;
+}
+
+/* ===== Industrias ===== */
+.industries-line {
+  display: flex;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.industries-line span {
+  flex: 1 1 200px;
+  padding: 28px 24px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid transparent;
+  font-size: 1.15rem;
+  /* Panel lamps switching on in sequence, like a rack booting up. */
+  color: var(--text-faint);
+  transition: color 260ms var(--ease-out), border-top-color 260ms var(--ease-out);
+}
+
+.industries-line.is-visible span { color: var(--text); border-top-color: var(--accent); }
+
+.industries-line.is-visible span:nth-child(1) { transition-delay: 0ms; }
+.industries-line.is-visible span:nth-child(2) { transition-delay: 60ms; }
+.industries-line.is-visible span:nth-child(3) { transition-delay: 120ms; }
+.industries-line.is-visible span:nth-child(4) { transition-delay: 180ms; }
+
+/* ===== About ===== */
+.about-layout {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 64px;
+  align-items: start;
+}
+
+.about-bio p {
+  color: var(--text-dim);
+  margin: 0 0 18px;
+  max-width: 62ch;
+}
+
+.about-bio p:first-child {
+  color: var(--text);
+}
+
+.about-stack .mono-label {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--text-faint);
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.stack-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.stack-list li {
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 0.95rem;
+  color: var(--text-dim);
+  transition: opacity 240ms var(--ease-out);
+}
+
+/* Hidden state only applies once JS confirms it can reveal it again — see
+   .service-list.reveal-pending above for why. */
+.stack-list.reveal-pending li { opacity: 0; }
+
+.stack-list.is-visible li { opacity: 1; }
+
+.stack-list.is-visible li:nth-child(1) { transition-delay: 0ms; }
+.stack-list.is-visible li:nth-child(2) { transition-delay: 40ms; }
+.stack-list.is-visible li:nth-child(3) { transition-delay: 80ms; }
+.stack-list.is-visible li:nth-child(4) { transition-delay: 120ms; }
+.stack-list.is-visible li:nth-child(5) { transition-delay: 160ms; }
+.stack-list.is-visible li:nth-child(6) { transition-delay: 200ms; }
+.stack-list.is-visible li:nth-child(7) { transition-delay: 240ms; }
+.stack-list.is-visible li:nth-child(8) { transition-delay: 280ms; }
+
+/* ===== Contact ===== */
+.contact-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+}
+
+.contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+  font-family: var(--mono);
+}
+
+.field input,
+.field textarea {
+  width: 100%;
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 12px 14px;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 0.95rem;
+  resize: vertical;
+}
+
+.field input,
+.field textarea {
+  transition: border-color 150ms var(--ease-out);
+}
+
+.field input:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.hp-field {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.form-note {
+  font-size: 0.85rem;
+  color: var(--text-faint);
+}
+
+.form-status {
+  font-size: 0.9rem;
+  min-height: 20px;
+  opacity: 0;
+  transition: opacity 180ms var(--ease-out), filter 180ms var(--ease-out);
+}
+
+.form-status:not(:empty) { opacity: 1; }
+
+/* Masks the text swap between "Enviando..." and the result so it reads as
+   one continuous change rather than two states cutting over. */
+.form-status.is-swapping { opacity: 0; filter: blur(3px); }
+
+.form-status.ok { color: var(--accent); }
+.form-status.err { color: #e5675c; }
+
+#submitBtn { transition: background 150ms var(--ease-out), transform 120ms var(--ease-out), opacity 150ms var(--ease-out); }
+#submitBtn[disabled] { opacity: 0.6; cursor: default; }
+
+.contact-direct h3 {
+  font-size: 1.02rem;
+  margin-bottom: 4px;
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
+.contact-channel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line-soft);
+  color: var(--text);
+}
+
+.contact-channel .ch-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.contact-channel span.label { color: var(--text-dim); font-size: 0.9rem; display: block; }
+.contact-channel span.value { font-family: var(--mono); font-size: 0.95rem; transition: color 150ms var(--ease-out); overflow-wrap: anywhere; }
+
+@media (hover: hover) and (pointer: fine) {
+  .contact-channel.link:hover span.value { color: var(--accent); }
+}
+
+.contact-channel.link { transition: opacity 100ms var(--ease-out); }
+.contact-channel.link:active { opacity: 0.6; }
+
+/* ===== Footer ===== */
+footer {
+  padding: 28px 0;
+  border-top: 1px solid var(--line-soft);
+}
+
+footer .wrap {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  color: var(--text-faint);
+  font-family: var(--mono);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 860px) {
+  section { padding: 56px 0; }
+  .hero { padding: 128px 0 64px; }
+  .nav-links {
+    display: flex;
+    position: absolute;
+    top: 60px;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    gap: 16px;
+    background: var(--bg);
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--line);
+    opacity: 0;
+    transform: translateY(-8px);
+    pointer-events: none;
+    transition: opacity 180ms var(--ease-out), transform 180ms var(--ease-out);
+  }
+  .nav-links.open {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  .nav-toggle { display: block; }
+  .section-head { grid-template-columns: 1fr; gap: 12px; }
+  .process-line { grid-template-columns: 1fr 1fr; }
+  .about-layout, .contact-layout { grid-template-columns: 1fr; gap: 40px; }
+  .hero-status { grid-template-columns: 1fr; }
+  .hero-status-item { border-right: none; border-bottom: 1px solid var(--line); padding: 16px 0; }
+  .hero-status-item:last-child { border-bottom: none; }
+}
+
+@media (max-width: 520px) {
+  .wrap { padding: 0 18px; }
+  .process-line { grid-template-columns: 1fr; }
+  .service-row { grid-template-columns: 32px 1fr; gap: 14px; }
+  .hero-actions { flex-direction: column; align-items: flex-start; gap: 20px; }
+  .industries-line span { flex: 1 1 100%; }
+}

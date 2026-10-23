@@ -1,0 +1,20 @@
+services:
+  calvopa-landing:
+    build: .
+    container_name: calvopa-landing
+    restart: unless-stopped
+    depends_on:
+      - calvopa-api
+    ports:
+      # Host port es un placeholder — chequeá que esté libre en el server
+      # antes de levantarlo (ver docs/deploy.md).
+      - "8090:80"
+
+  calvopa-api:
+    build: ./server
+    container_name: calvopa-landing-api
+    restart: unless-stopped
+    env_file:
+      - ./server/.env
+    expose:
+      - "3001"
